@@ -595,22 +595,32 @@ function doGet(e) {
       .getSheetByName("📝 Lançamentos");
 
     if (!sheet) {
-      return resp({ok: false, erro: "Aba '📝 Lançamentos' não encontrada"});
+      return resp({ok: false, erro: "Aba '📝 Lançamentos' nao encontrada"});
     }
 
-    var row = [
-      "",               // # gerado por fórmula
-      p.data    || "",
+    // Encontra a primeira linha vazia a partir da linha 5 (coluna G = Valor)
+    var dados = sheet.getRange("G5:G204").getValues();
+    var linhaAlvo = 205; // fallback: depois das 200 linhas formatadas
+    for (var i = 0; i < dados.length; i++) {
+      if (dados[i][0] === "" || dados[i][0] === null || dados[i][0] === 0) {
+        linhaAlvo = 5 + i;
+        break;
+      }
+    }
+
+    // Escreve os dados na linha encontrada
+    sheet.getRange(linhaAlvo, 1, 1, 8).setValues([[
+      "",
+      p.data      || "",
       p.descricao || "",
       p.categoria || "",
       p.mes       || "",
       p.ano       || "",
       parseFloat(p.valor) || 0,
       p.status    || "Pago"
-    ];
+    ]]);
 
-    sheet.appendRow(row);
-    return resp({ok: true, msg: "Registrado com sucesso"});
+    return resp({ok: true, msg: "Registrado na linha " + linhaAlvo});
 
   } catch(err) {
     return resp({ok: false, erro: err.message});
