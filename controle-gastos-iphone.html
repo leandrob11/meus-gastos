@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gastos">
+<title>💰 Controle de Gastos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: rgba(255,255,255,0.07);
+    --accent: #7c6fff;
+    --accent2: #ff6b9d;
+    --accent3: #00d4aa;
+    --text: #f0f0f8;
+    --muted: #6b6b8a;
+    --danger: #ff5566;
+    --warn: #ffaa44;
+    --success: #00d4aa;
+    --r: 20px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    overflow-x: hidden;
+  }
+
+  /* BG mesh */
+  body::before {
+    content:'';
+    position: fixed; inset:0; z-index:0;
+    background:
+      radial-gradient(ellipse 60% 50% at 10% 0%, rgba(124,111,255,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 90% 100%, rgba(255,107,157,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(0,212,170,0.06) 0%, transparent 70%);
+    pointer-events:none;
+  }
+
+  .wrap { position:relative; z-index:1; max-width:420px; margin:0 auto; padding:24px 20px 100px; }
+
+  /* ── HEADER ── */
+  .header { margin-bottom:28px; }
+  .header-top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .greeting {
+    font-family:'DM Serif Display', serif;
+    font-size:28px; line-height:1.1;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .greeting span { font-style:italic; }
+  .date-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius:12px; padding:6px 12px;
+    font-size:11px; color:var(--muted);
+    letter-spacing:0.05em;
+  }
+
+  /* ── CONFIG ALERT ── */
+  .config-alert {
+    background: linear-gradient(135deg, rgba(124,111,255,0.15), rgba(255,107,157,0.1));
+    border: 1px solid rgba(124,111,255,0.3);
+    border-radius:var(--r); padding:16px;
+    margin-bottom:20px; font-size:13px;
+    display:none;
+  }
+  .config-alert.show { display:block; }
+  .config-alert strong { color:var(--accent); }
+  .config-alert a { color:var(--accent2); }
+
+  /* ── CARDS KPI ── */
+  .kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+  .kpi {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--r); padding:16px;
+    position:relative; overflow:hidden;
+    transition: transform 0.15s;
+  }
+  .kpi:active { transform:scale(0.97); }
+  .kpi::before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(135deg, var(--kpi-color,var(--accent)) 0%, transparent 60%);
+    opacity:0.08;
+  }
+  .kpi-label { font-size:10px; letter-spacing:0.08em; color:var(--muted); text-transform:uppercase; margin-bottom:6px; }
+  .kpi-value { font-size:22px; font-weight:600; color:var(--text); }
+  .kpi-value.big { font-size:18px; }
+  .kpi-sub { font-size:10px; color:var(--muted); margin-top:4px; }
+  .kpi.renda { --kpi-color: #00d4aa; }
+  .kpi.gasto { --kpi-color: #ff6b9d; }
+  .kpi.saldo { --kpi-color: #7c6fff; }
+  .kpi.fixo  { --kpi-color: #ffaa44; }
+
+  .kpi.saldo .kpi-value { color:var(--success); }
+  .kpi.saldo .kpi-value.negativo { color:var(--danger); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r); padding:18px; margin-bottom:24px;
+  }
+  .progress-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .progress-title { font-size:13px; font-weight:500; }
+  .progress-pct { font-size:13px; font-weight:600; }
+  .bar-track {
+    width:100%; height:8px; background:rgba(255,255,255,0.06);
+    border-radius:99px; overflow:hidden;
+  }
+  .bar-fill {
+    height:100%; border-radius:99px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    position:relative;
+  }
+  .bar-fill::after {
+    content:''; position:absolute; right:0; top:50%;
+    transform:translateY(-50%);
+    width:12px; height:12px; border-radius:50%;
+    background:white; box-shadow:0 0 8px var(--accent2);
+  }
+  .bar-fill.danger { background:linear-gradient(90deg, var(--warn), var(--danger)); }
+
+  /* ── TABS ── */
+  .tabs { display:flex; gap:6px; margin-bottom:20px; }
+  .tab {
+    flex:1; padding:10px; border-radius:12px;
+    background:var(--surface); border:1px solid var(--border);
+    color:var(--muted); font-size:13px; font-weight:500;
+    cursor:pointer; text-align:center; transition:all 0.2s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .tab.active {
+    background:var(--accent); border-color:var(--accent);
+    color:#fff;
+  }
+
+  /* ── FORM ── */
+  .form-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r); padding:20px; margin-bottom:20px;
+  }
+  .form-title {
+    font-family:'DM Serif Display',serif; font-size:20px;
+    margin-bottom:18px;
+    background:linear-gradient(135deg,#fff,var(--accent));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .field { margin-bottom:14px; }
+  .field label { font-size:11px; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; display:block; margin-bottom:6px; }
+
+  .field select, .field input {
+    width:100%; padding:13px 14px;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:12px; color:var(--text);
+    font-family:'DM Sans',sans-serif; font-size:15px;
+    appearance:none; -webkit-appearance:none;
+    outline:none; transition:border-color 0.2s;
+  }
+  .field select:focus, .field input:focus {
+    border-color:rgba(124,111,255,0.5);
+  }
+  .field select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+
+  .field input[type=number] { font-size:24px; font-weight:600; text-align:center; letter-spacing:-0.5px; }
+  .field input[type=number]::placeholder { font-size:16px; font-weight:400; color:var(--muted); }
+
+  .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  /* ── CHIPS CATEGORIA ── */
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip {
+    padding:8px 14px; border-radius:99px;
+    background:var(--surface2); border:1px solid var(--border);
+    font-size:13px; color:var(--muted); cursor:pointer;
+    transition:all 0.15s; user-select:none;
+    font-family:'DM Sans',sans-serif;
+  }
+  .chip.selected {
+    background:rgba(124,111,255,0.2);
+    border-color:var(--accent); color:var(--accent);
+    font-weight:600;
+  }
+  .chip:active { transform:scale(0.93); }
+
+  /* ── BTN ── */
+  .btn-register {
+    width:100%; padding:17px;
+    background:linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    border:none; border-radius:16px; color:#fff;
+    font-family:'DM Sans',sans-serif; font-size:16px; font-weight:600;
+    cursor:pointer; transition:all 0.2s;
+    box-shadow:0 8px 32px rgba(124,111,255,0.35);
+    letter-spacing:0.02em;
+  }
+  .btn-register:active { transform:scale(0.97); box-shadow:0 4px 16px rgba(124,111,255,0.2); }
+  .btn-register:disabled { opacity:0.4; }
+
+  /* ── TOAST ── */
+  .toast {
+    position:fixed; bottom:calc(env(safe-area-inset-bottom) + 90px); left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--surface2); border:1px solid rgba(0,212,170,0.3);
+    color:var(--success); padding:12px 20px; border-radius:12px;
+    font-size:14px; font-weight:500; z-index:100;
+    opacity:0; transition:all 0.3s; white-space:nowrap;
+    pointer-events:none;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.error { color:var(--danger); border-color:rgba(255,85,102,0.3); }
+
+  /* ── HISTÓRICO ── */
+  .history-list { display:flex; flex-direction:column; gap:10px; }
+  .history-item {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:14px 16px;
+    display:flex; justify-content:space-between; align-items:center;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { opacity:0; transform:translateY(10px); } }
+  .history-left {}
+  .history-cat { font-size:13px; font-weight:600; color:var(--text); }
+  .history-desc { font-size:11px; color:var(--muted); margin-top:2px; }
+  .history-date { font-size:10px; color:var(--muted); margin-top:4px; }
+  .history-val { font-size:17px; font-weight:700; color:var(--accent2); }
+
+  /* ── CONFIG TAB ── */
+  .config-section { margin-bottom:20px; }
+  .config-section-title {
+    font-size:11px; color:var(--muted); letter-spacing:0.08em;
+    text-transform:uppercase; margin-bottom:10px;
+  }
+  .config-item {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; overflow:hidden; margin-bottom:8px;
+  }
+  .config-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 16px;
+    border-bottom:1px solid var(--border);
+  }
+  .config-row:last-child { border-bottom:none; }
+  .config-row-label { font-size:14px; }
+  .config-row-value { font-size:13px; color:var(--muted); }
+  .config-input-row {
+    padding:12px 16px;
+    border-bottom:1px solid var(--border);
+  }
+  .config-input-row:last-child { border-bottom:none; }
+  .config-input-label { font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; }
+  .config-input {
+    width:100%; padding:10px 12px;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; color:var(--text);
+    font-family:'DM Sans',sans-serif; font-size:14px; outline:none;
+  }
+  .config-input:focus { border-color:rgba(124,111,255,0.5); }
+
+  .btn-save {
+    width:100%; padding:14px;
+    background:var(--accent); border:none; border-radius:14px;
+    color:#fff; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600;
+    cursor:pointer; margin-top:6px; transition:all 0.2s;
+  }
+  .btn-save:active { transform:scale(0.97); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position:fixed; bottom:0; left:50%;
+    transform:translateX(-50%);
+    width:100%; max-width:420px;
+    padding:10px 20px calc(env(safe-area-inset-bottom) + 10px);
+    background:rgba(10,10,15,0.85); backdrop-filter:blur(24px);
+    border-top:1px solid var(--border);
+    display:flex; gap:0; z-index:50;
+  }
+  .nav-btn {
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    gap:4px; padding:8px; border-radius:12px;
+    cursor:pointer; transition:all 0.2s; border:none;
+    background:transparent; color:var(--muted);
+    font-family:'DM Sans',sans-serif;
+  }
+  .nav-btn.active { color:var(--accent); }
+  .nav-btn span:first-child { font-size:22px; }
+  .nav-btn span:last-child { font-size:10px; font-weight:500; }
+
+  /* ── SECTIONS ── */
+  .section { display:none; }
+  .section.active { display:block; animation:fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity:0; } }
+
+  /* SHEET URL highlight */
+  .url-highlight {
+    background:rgba(124,111,255,0.1); border:1px solid rgba(124,111,255,0.25);
+    border-radius:8px; padding:10px 12px; font-size:12px;
+    color:var(--accent); word-break:break-all; margin:8px 0;
+    font-family:monospace;
+  }
+
+  .guide-step {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:16px; margin-bottom:10px;
+  }
+  .guide-step-num {
+    width:26px; height:26px; border-radius:50%;
+    background:var(--accent); color:#fff;
+    font-size:12px; font-weight:700;
+    display:inline-flex; align-items:center; justify-content:center;
+    margin-bottom:8px;
+  }
+  .guide-step-title { font-size:14px; font-weight:600; margin-bottom:4px; }
+  .guide-step-desc { font-size:12px; color:var(--muted); line-height:1.6; }
+  .guide-step-code {
+    background:var(--surface2); border-radius:8px; padding:8px 10px;
+    font-family:monospace; font-size:11px; color:var(--accent3);
+    margin-top:8px; word-break:break-all;
+  }
+
+  .empty-state { text-align:center; padding:40px 20px; color:var(--muted); }
+  .empty-state .icon { font-size:40px; margin-bottom:12px; }
+  .empty-state p { font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- SECTION: INÍCIO -->
+  <div id="sec-home" class="section active">
+    <div class="header">
+      <div class="header-top">
+        <div>
+          <div class="greeting">Olá, <span>bem-vindo</span></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px" id="sub-date"></div>
+        </div>
+        <div class="date-badge" id="header-date"></div>
+      </div>
+    </div>
+
+    <div class="config-alert" id="cfg-alert">
+      ⚠️ <strong>Configure primeiro!</strong><br>
+      Vá em <strong>⚙️ Config</strong> e preencha sua renda, despesas fixas e a URL da planilha para começar.
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi renda">
+        <div class="kpi-label">💵 Renda</div>
+        <div class="kpi-value big" id="kpi-renda">R$ 0</div>
+        <div class="kpi-sub">mensal</div>
+      </div>
+      <div class="kpi fixo">
+        <div class="kpi-label">📌 Fixas</div>
+        <div class="kpi-value big" id="kpi-fixo">R$ 0</div>
+        <div class="kpi-sub">comprometido</div>
+      </div>
+      <div class="kpi gasto">
+        <div class="kpi-label">💸 Gasto</div>
+        <div class="kpi-value big" id="kpi-gasto">R$ 0</div>
+        <div class="kpi-sub">este mês</div>
+      </div>
+      <div class="kpi saldo">
+        <div class="kpi-label">✅ Disponível</div>
+        <div class="kpi-value big" id="kpi-saldo">R$ 0</div>
+        <div class="kpi-sub">para gastar</div>
+      </div>
+    </div>
+
+    <div class="progress-card">
+      <div class="progress-header">
+        <span class="progress-title">Orçamento utilizado</span>
+        <span class="progress-pct" id="pct-text">0%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="bar-fill" style="width:0%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--muted)">
+        <span>R$ 0</span>
+        <span id="bar-max">R$ 0</span>
+      </div>
+    </div>
+
+    <!-- Últimos lançamentos -->
+    <div style="font-size:12px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px">Últimos lançamentos</div>
+    <div id="recent-list" class="history-list">
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <p>Nenhum lançamento ainda.<br>Toque em <strong>＋ Registrar</strong> para começar!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: REGISTRAR -->
+  <div id="sec-reg" class="section">
+    <div class="form-card">
+      <div class="form-title">Novo lançamento</div>
+
+      <div class="field">
+        <label>Categoria</label>
+        <div class="chips" id="chips-container"></div>
+      </div>
+
+      <div class="field">
+        <label>Valor</label>
+        <input type="number" id="f-valor" placeholder="R$ 0,00" min="0" step="0.01" inputmode="decimal">
+      </div>
+
+      <div class="field">
+        <label>Descrição</label>
+        <input type="text" id="f-desc" placeholder="Ex: Conta de luz de abril...">
+      </div>
+
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label>Mês</label>
+          <select id="f-mes">
+            <option>Janeiro</option><option>Fevereiro</option><option>Março</option>
+            <option>Abril</option><option>Maio</option><option>Junho</option>
+            <option>Julho</option><option>Agosto</option><option>Setembro</option>
+            <option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Status</label>
+          <select id="f-status">
+            <option>Pago</option>
+            <option>Pendente</option>
+            <option>Cancelado</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:6px">
+        <div class="field">
+          <label>Data</label>
+          <input type="date" id="f-data">
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-register" id="btn-register" onclick="registrar()">
+      Registrar na Planilha ✦
+    </button>
+
+    <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--muted)">
+      Os dados serão enviados para o seu Google Sheets
+    </div>
+  </div>
+
+  <!-- SECTION: HISTÓRICO -->
+  <div id="sec-hist" class="section">
+    <div style="font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:20px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">
+      Histórico
+    </div>
+    <div id="hist-list" class="history-list">
+      <div class="empty-state">
+        <div class="icon">📂</div>
+        <p>Seus lançamentos aparecerão aqui.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: CONFIG -->
+  <div id="sec-cfg" class="section">
+    <div style="font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:20px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">
+      Configurações
+    </div>
+
+    <div class="config-section">
+      <div class="config-section-title">📊 Google Sheets</div>
+      <div class="config-item">
+        <div class="config-input-row">
+          <div class="config-input-label">URL do Google Sheets (Apps Script)</div>
+          <input class="config-input" id="cfg-url" type="url" placeholder="https://script.google.com/macros/s/...">
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <div class="config-section-title">💵 Financeiro</div>
+      <div class="config-item">
+        <div class="config-input-row">
+          <div class="config-input-label">Renda mensal (R$)</div>
+          <input class="config-input" id="cfg-renda" type="number" placeholder="Ex: 5000" inputmode="decimal">
+        </div>
+        <div class="config-input-row">
+          <div class="config-input-label">Orçamento máximo de gastos (R$)</div>
+          <input class="config-input" id="cfg-orcamento" type="number" placeholder="Ex: 3000" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <div class="config-section-title">📌 Despesas Fixas Mensais</div>
+      <div class="config-item" id="fixas-container"></div>
+    </div>
+
+    <button class="btn-save" onclick="salvarConfig()">💾 Salvar configurações</button>
+
+    <!-- GUIA DE CONFIGURAÇÃO -->
+    <div style="margin-top:28px;font-size:12px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px">
+      📖 Guia de configuração
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-step-num">1</div>
+      <div class="guide-step-title">Abra sua planilha no Google Sheets</div>
+      <div class="guide-step-desc">Acesse drive.google.com e abra a planilha "Controle de Gastos" que você baixou.</div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-step-num">2</div>
+      <div class="guide-step-title">Crie o Apps Script</div>
+      <div class="guide-step-desc">No menu: <strong>Extensões → Apps Script</strong>. Apague o código existente e cole o código abaixo:</div>
+      <div class="guide-step-code" id="apps-script-code" onclick="copiarScript()">
+        (toque para copiar o código)
+      </div>
+      <div style="font-size:11px;color:var(--accent3);margin-top:6px">👆 Toque no código para copiar</div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-step-num">3</div>
+      <div class="guide-step-title">Publique o Script</div>
+      <div class="guide-step-desc">Clique em <strong>Implantar → Nova implantação</strong>. Tipo: <strong>App da Web</strong>. Acesso: <strong>Qualquer pessoa</strong>. Copie a URL gerada e cole no campo acima.</div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-step-num">4</div>
+      <div class="guide-step-title">Adicione à tela inicial do iPhone</div>
+      <div class="guide-step-desc">Abra este app no <strong>Safari</strong> → toque em <strong>Compartilhar ⬆</strong> → <strong>Adicionar à Tela de Início</strong>. Vira um ícone como app nativo!</div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-step-num">5</div>
+      <div class="guide-step-title">(Opcional) Atalho Siri com 1 toque</div>
+      <div class="guide-step-desc">No app <strong>Atalhos</strong> do iPhone, crie um novo atalho com a ação <strong>"Abrir URL"</strong> apontando para este app. Adicione à tela inicial como widget ou botão.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showSection('home',this)">
+    <span>🏠</span><span>Início</span>
+  </button>
+  <button class="nav-btn" onclick="showSection('reg',this)">
+    <span>＋</span><span>Registrar</span>
+  </button>
+  <button class="nav-btn" onclick="showSection('hist',this)">
+    <span>📋</span><span>Histórico</span>
+  </button>
+  <button class="nav-btn" onclick="showSection('cfg',this)">
+    <span>⚙️</span><span>Config</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── ESTADO ───────────────────────────────────────────────────────────────────
+const CATS = ["Aluguel","Internet","Celular Tim","Faculdade","Luz","Água","Compras","Cartão de Crédito","Avulsos"];
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+let selectedCat = null;
+let state = {
+  url: '', renda: 0, orcamento: 0,
+  fixas: { Aluguel:0, Internet:0, "Celular Tim":0, Faculdade:0, Luz:0, "Água":0, Compras:0, "Cartão de Crédito":0, Avulsos:0 },
+  lancamentos: []
+};
+
+const APPS_SCRIPT = `// Cole este código no Apps Script da sua planilha
+// Extensões → Apps Script → apague tudo → cole → salve → Implantar
+
+function doGet(e) {
+  try {
+    var p = e.parameter;
+
+    // Ping de teste (sem parâmetros)
+    if (!p.categoria) {
+      return resp({ok: true, msg: "API ativa"});
+    }
+
+    var sheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName("📝 Lançamentos");
+
+    if (!sheet) {
+      return resp({ok: false, erro: "Aba '📝 Lançamentos' não encontrada"});
+    }
+
+    var row = [
+      "",               // # gerado por fórmula
+      p.data    || "",
+      p.descricao || "",
+      p.categoria || "",
+      p.mes       || "",
+      p.ano       || "",
+      parseFloat(p.valor) || 0,
+      p.status    || "Pago"
+    ];
+
+    sheet.appendRow(row);
+    return resp({ok: true, msg: "Registrado com sucesso"});
+
+  } catch(err) {
+    return resp({ok: false, erro: err.message});
+  }
+}
+
+function resp(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  loadState();
+  renderDate();
+  renderChips();
+  renderFixasConfig();
+  renderKPIs();
+  renderHistorico();
+  setDefaultDate();
+  setDefaultMes();
+  renderAppsScript();
+  checkConfig();
+}
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('gasto_state');
+    if (s) state = { ...state, ...JSON.parse(s) };
+  } catch(e) {}
+  document.getElementById('cfg-url').value = state.url || '';
+  document.getElementById('cfg-renda').value = state.renda || '';
+  document.getElementById('cfg-orcamento').value = state.orcamento || '';
+}
+
+function saveState() {
+  localStorage.setItem('gasto_state', JSON.stringify(state));
+}
+
+function renderDate() {
+  const now = new Date();
+  const opts = { weekday:'long', day:'numeric', month:'long' };
+  document.getElementById('sub-date').textContent = now.toLocaleDateString('pt-BR', opts);
+  document.getElementById('header-date').textContent = now.toLocaleDateString('pt-BR', { month:'short', year:'numeric' }).toUpperCase();
+}
+
+function setDefaultDate() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f-data').value = today;
+}
+
+function setDefaultMes() {
+  const m = new Date().getMonth();
+  document.getElementById('f-mes').selectedIndex = m;
+}
+
+// ── CHIPS ─────────────────────────────────────────────────────────────────────
+function renderChips() {
+  const container = document.getElementById('chips-container');
+  container.innerHTML = '';
+  CATS.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (cat === selectedCat ? ' selected' : '');
+    chip.textContent = cat;
+    chip.onclick = () => selectCat(cat);
+    container.appendChild(chip);
+  });
+}
+
+function selectCat(cat) {
+  selectedCat = cat;
+  renderChips();
+}
+
+// ── FIXAS CONFIG ──────────────────────────────────────────────────────────────
+function renderFixasConfig() {
+  const container = document.getElementById('fixas-container');
+  container.innerHTML = '';
+  CATS.forEach(cat => {
+    const row = document.createElement('div');
+    row.className = 'config-input-row';
+    row.innerHTML = `
+      <div class="config-input-label">${cat}</div>
+      <input class="config-input" type="number" id="fixa-${cat.replace(/ /g,'_')}"
+        placeholder="R$ 0,00" inputmode="decimal"
+        value="${state.fixas[cat] || ''}">
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+function renderKPIs() {
+  const renda = parseFloat(state.renda) || 0;
+  const orcamento = parseFloat(state.orcamento) || renda;
+  const totalFixas = Object.values(state.fixas).reduce((a,b) => a + (parseFloat(b)||0), 0);
+  const mes = MESES[new Date().getMonth()];
+  const gastoMes = state.lancamentos
+    .filter(l => l.mes === mes)
+    .reduce((a,l) => a + (parseFloat(l.valor)||0), 0);
+  const disponivel = orcamento - gastoMes;
+  const pct = orcamento > 0 ? Math.min((gastoMes/orcamento)*100, 100) : 0;
+
+  document.getElementById('kpi-renda').textContent = fmt(renda);
+  document.getElementById('kpi-fixo').textContent = fmt(totalFixas);
+  document.getElementById('kpi-gasto').textContent = fmt(gastoMes);
+  document.getElementById('kpi-saldo').textContent = fmt(disponivel);
+  document.getElementById('kpi-saldo').className = 'kpi-value big' + (disponivel < 0 ? ' negativo' : '');
+  document.getElementById('pct-text').textContent = pct.toFixed(0) + '%';
+  document.getElementById('bar-max').textContent = fmt(orcamento);
+  const bar = document.getElementById('bar-fill');
+  bar.style.width = pct + '%';
+  bar.className = 'bar-fill' + (pct > 80 ? ' danger' : '');
+  renderRecent();
+}
+
+function fmt(v) {
+  return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function renderRecent() {
+  const list = document.getElementById('recent-list');
+  const items = [...state.lancamentos].reverse().slice(0, 5);
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhum lançamento ainda.<br>Toque em <strong>＋ Registrar</strong> para começar!</p></div>`;
+    return;
+  }
+  list.innerHTML = items.map(l => `
+    <div class="history-item">
+      <div class="history-left">
+        <div class="history-cat">${l.categoria}</div>
+        <div class="history-desc">${l.descricao || '—'}</div>
+        <div class="history-date">${l.data} · ${l.mes} · ${l.status}</div>
+      </div>
+      <div class="history-val">${fmt(l.valor)}</div>
+    </div>
+  `).join('');
+}
+
+function renderHistorico() {
+  const list = document.getElementById('hist-list');
+  const items = [...state.lancamentos].reverse();
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📂</div><p>Seus lançamentos aparecerão aqui.</p></div>`;
+    return;
+  }
+  list.innerHTML = items.map(l => `
+    <div class="history-item">
+      <div class="history-left">
+        <div class="history-cat">${l.categoria}</div>
+        <div class="history-desc">${l.descricao || '—'}</div>
+        <div class="history-date">${l.data} · ${l.mes} · ${l.status}</div>
+      </div>
+      <div class="history-val">${fmt(l.valor)}</div>
+    </div>
+  `).join('');
+}
+
+// ── APPS SCRIPT CODE ──────────────────────────────────────────────────────────
+function renderAppsScript() {
+  document.getElementById('apps-script-code').textContent = APPS_SCRIPT;
+}
+
+function copiarScript() {
+  navigator.clipboard.writeText(APPS_SCRIPT).then(() => showToast('✅ Código copiado!')).catch(() => {
+    showToast('Selecione e copie o código manualmente', true);
+  });
+}
+
+// ── REGISTRAR ────────────────────────────────────────────────────────────────
+async function registrar() {
+  const cat = selectedCat;
+  const valor = document.getElementById('f-valor').value;
+  const desc = document.getElementById('f-desc').value;
+  const mes = document.getElementById('f-mes').value;
+  const status = document.getElementById('f-status').value;
+  const data = document.getElementById('f-data').value;
+
+  if (!cat) { showToast('Selecione uma categoria', true); return; }
+  if (!valor || parseFloat(valor) <= 0) { showToast('Informe um valor válido', true); return; }
+
+  const lancamento = {
+    categoria: cat, valor: parseFloat(valor),
+    descricao: desc, mes, status, data,
+    ano: new Date().getFullYear()
+  };
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  // Salva local sempre
+  state.lancamentos.push(lancamento);
+  saveState();
+
+  // Tenta enviar para planilha via GET (sem problema de CORS)
+  if (state.url) {
+    try {
+      const params = new URLSearchParams({
+        categoria: lancamento.categoria,
+        valor:     lancamento.valor,
+        descricao: lancamento.descricao || '',
+        mes:       lancamento.mes,
+        status:    lancamento.status,
+        data:      lancamento.data,
+        ano:       lancamento.ano
+      });
+      const res = await fetch(state.url + '?' + params.toString());
+      const json = await res.json().catch(() => ({}));
+      if (json.ok) {
+        showToast('✅ Registrado na planilha!');
+      } else {
+        showToast('⚠️ Erro: ' + (json.erro || 'tente novamente'), true);
+      }
+    } catch(e) {
+      showToast('⚠️ Salvo localmente (sem conexão)', true);
+    }
+  } else {
+    showToast('✅ Salvo localmente');
+  }
+
+  // Reset form
+  selectedCat = null;
+  renderChips();
+  document.getElementById('f-valor').value = '';
+  document.getElementById('f-desc').value = '';
+  setDefaultDate();
+
+  renderKPIs();
+  renderHistorico();
+
+  btn.disabled = false;
+  btn.textContent = 'Registrar na Planilha ✦';
+
+  setTimeout(() => showSection('home', document.querySelectorAll('.nav-btn')[0]), 800);
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+function salvarConfig() {
+  state.url = document.getElementById('cfg-url').value.trim();
+  state.renda = parseFloat(document.getElementById('cfg-renda').value) || 0;
+  state.orcamento = parseFloat(document.getElementById('cfg-orcamento').value) || 0;
+  CATS.forEach(cat => {
+    const id = 'fixa-' + cat.replace(/ /g,'_');
+    state.fixas[cat] = parseFloat(document.getElementById(id)?.value) || 0;
+  });
+  saveState();
+  renderKPIs();
+  checkConfig();
+  showToast('✅ Configurações salvas!');
+}
+
+function checkConfig() {
+  const alert = document.getElementById('cfg-alert');
+  if (!state.url || !state.renda) {
+    alert.classList.add('show');
+  } else {
+    alert.classList.remove('show');
+  }
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+// ── START ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
