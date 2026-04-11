@@ -332,6 +332,41 @@
   .empty-state { text-align:center; padding:40px 20px; color:var(--muted); }
   .empty-state .icon { font-size:40px; margin-bottom:12px; }
 
+  /* MODAL CONFIRMAÇÃO */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:200;
+    background:rgba(0,0,0,0.7); backdrop-filter:blur(8px);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s;
+  }
+  .modal-overlay.show { opacity:1; pointer-events:all; }
+  .modal-box {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:24px 24px 0 0; padding:28px 24px calc(env(safe-area-inset-bottom) + 28px);
+    width:100%; max-width:420px;
+    transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .modal-overlay.show .modal-box { transform:translateY(0); }
+  .modal-title { font-family:'DM Serif Display',serif; font-size:20px; margin-bottom:8px; }
+  .modal-desc { font-size:13px; color:var(--muted); margin-bottom:24px; line-height:1.6; }
+  .modal-btns { display:flex; flex-direction:column; gap:10px; }
+  .modal-btn-confirm {
+    width:100%; padding:15px; border-radius:14px; border:none;
+    background:rgba(255,85,102,0.15); color:var(--danger);
+    font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600;
+    cursor:pointer; border:1px solid rgba(255,85,102,0.3);
+    transition:all 0.15s;
+  }
+  .modal-btn-confirm:active { background:rgba(255,85,102,0.3); }
+  .modal-btn-cancel {
+    width:100%; padding:15px; border-radius:14px; border:none;
+    background:var(--surface); color:var(--muted);
+    font-family:'DM Sans',sans-serif; font-size:15px; font-weight:500;
+    cursor:pointer; border:1px solid var(--border);
+    transition:all 0.15s;
+  }
+  .modal-btn-cancel:active { opacity:0.7; }
+
   .btn-delete {
     background: rgba(255,85,102,0.12);
     border: 1px solid rgba(255,85,102,0.25);
@@ -573,6 +608,18 @@
     <span>⚙️</span><span>Config</span>
   </button>
 </nav>
+
+<!-- MODAL APAGAR -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">🗑 Apagar lançamento?</div>
+    <div class="modal-desc">O lançamento será removido do app.<br>Para apagar da planilha, faça manualmente no Google Sheets.</div>
+    <div class="modal-btns">
+      <button class="modal-btn-confirm" id="modal-confirm">Sim, apagar do app</button>
+      <button class="modal-btn-cancel" id="modal-cancel">Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -862,6 +909,33 @@ async function registrar() {
 
   setTimeout(() => showSection('home', document.querySelectorAll('.nav-btn')[0]), 800);
 }
+
+// ── DELETAR ───────────────────────────────────────────────────────────────────
+let _deleteIdx = null;
+
+function deletarLancamento(idx) {
+  _deleteIdx = idx;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function fecharModal() {
+  _deleteIdx = null;
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+document.getElementById('modal-confirm').onclick = function() {
+  if (_deleteIdx === null) return;
+  state.lancamentos.splice(_deleteIdx, 1);
+  saveState();
+  renderKPIs();
+  renderHistorico();
+  fecharModal();
+  showToast('🗑 Lançamento removido do app');
+};
+document.getElementById('modal-cancel').onclick = fecharModal;
+document.getElementById('modal-overlay').onclick = function(e) {
+  if (e.target === this) fecharModal();
+};
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 function salvarConfig() {
