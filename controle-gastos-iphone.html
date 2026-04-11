@@ -353,17 +353,14 @@
     <div class="header">
       <div class="header-top">
         <div>
-          <div class="greeting">Olá, <span>bem-vindo</span></div>
+          <div class="greeting">Bem-vindo, <span>Leandro</span></div>
           <div style="font-size:13px;color:var(--muted);margin-top:4px" id="sub-date"></div>
         </div>
         <div class="date-badge" id="header-date"></div>
       </div>
     </div>
 
-    <div class="config-alert" id="cfg-alert">
-      ⚠️ <strong>Configure primeiro!</strong><br>
-      Vá em <strong>⚙️ Config</strong> e preencha sua renda, despesas fixas e a URL da planilha para começar.
-    </div>
+
 
     <div class="kpi-grid">
       <div class="kpi renda">
@@ -644,7 +641,6 @@ function init() {
   setDefaultDate();
   setDefaultMes();
   renderAppsScript();
-  checkConfig();
 }
 
 function loadState() {
@@ -878,18 +874,9 @@ function salvarConfig() {
   });
   saveState();
   renderKPIs();
-  checkConfig();
   showToast('✅ Configurações salvas!');
 }
 
-function checkConfig() {
-  const alert = document.getElementById('cfg-alert');
-  if (!state.url || !state.renda) {
-    alert.classList.add('show');
-  } else {
-    alert.classList.remove('show');
-  }
-}
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
 function showSection(name, btn) {
