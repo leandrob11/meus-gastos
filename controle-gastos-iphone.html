@@ -331,6 +331,17 @@
 
   .empty-state { text-align:center; padding:40px 20px; color:var(--muted); }
   .empty-state .icon { font-size:40px; margin-bottom:12px; }
+
+  .btn-delete {
+    background: rgba(255,85,102,0.12);
+    border: 1px solid rgba(255,85,102,0.25);
+    color: var(--danger); border-radius:8px;
+    font-size:11px; font-weight:600;
+    padding:5px 10px; cursor:pointer;
+    font-family:'DM Sans',sans-serif;
+    transition: all 0.15s;
+  }
+  .btn-delete:active { background:rgba(255,85,102,0.25); transform:scale(0.95); }
   .empty-state p { font-size:13px; }
 </style>
 </head>
@@ -579,14 +590,14 @@ let state = {
   lancamentos: []
 };
 
-const APPS_SCRIPT = `// Cole este código no Apps Script da sua planilha
+const APPS_SCRIPT = `// Cole este código no Apps Script da nova planilha Gastos_iPhone
 // Extensões → Apps Script → apague tudo → cole → salve → Implantar
 
 function doGet(e) {
   try {
     var p = e.parameter;
 
-    // Ping de teste (sem parâmetros)
+    // Ping de teste
     if (!p.categoria) {
       return resp({ok: true, msg: "API ativa"});
     }
@@ -595,22 +606,11 @@ function doGet(e) {
       .getSheetByName("📝 Lançamentos");
 
     if (!sheet) {
-      return resp({ok: false, erro: "Aba '📝 Lançamentos' nao encontrada"});
+      return resp({ok: false, erro: "Aba nao encontrada"});
     }
 
-    // Encontra a primeira linha vazia a partir da linha 5 (coluna G = Valor)
-    var dados = sheet.getRange("G5:G204").getValues();
-    var linhaAlvo = 205; // fallback: depois das 200 linhas formatadas
-    for (var i = 0; i < dados.length; i++) {
-      if (dados[i][0] === "" || dados[i][0] === null || dados[i][0] === 0) {
-        linhaAlvo = 5 + i;
-        break;
-      }
-    }
-
-    // Escreve os dados na linha encontrada
-    sheet.getRange(linhaAlvo, 1, 1, 8).setValues([[
-      "",
+    // Simples: sempre adiciona na próxima linha disponível
+    sheet.appendRow([
       p.data      || "",
       p.descricao || "",
       p.categoria || "",
@@ -618,9 +618,9 @@ function doGet(e) {
       p.ano       || "",
       parseFloat(p.valor) || 0,
       p.status    || "Pago"
-    ]]);
+    ]);
 
-    return resp({ok: true, msg: "Registrado na linha " + linhaAlvo});
+    return resp({ok: true, msg: "Registrado com sucesso!"});
 
   } catch(err) {
     return resp({ok: false, erro: err.message});
@@ -749,14 +749,16 @@ function renderRecent() {
     list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhum lançamento ainda.<br>Toque em <strong>＋ Registrar</strong> para começar!</p></div>`;
     return;
   }
-  list.innerHTML = items.map(l => `
-    <div class="history-item">
+  list.innerHTML = items.map((l,i) => `
+    <div class="history-item" id="recent-${i}">
       <div class="history-left">
         <div class="history-cat">${l.categoria}</div>
         <div class="history-desc">${l.descricao || '—'}</div>
         <div class="history-date">${l.data} · ${l.mes} · ${l.status}</div>
       </div>
-      <div class="history-val">${fmt(l.valor)}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <div class="history-val">${fmt(l.valor)}</div>
+      </div>
     </div>
   `).join('');
 }
@@ -768,16 +770,22 @@ function renderHistorico() {
     list.innerHTML = `<div class="empty-state"><div class="icon">📂</div><p>Seus lançamentos aparecerão aqui.</p></div>`;
     return;
   }
-  list.innerHTML = items.map(l => `
-    <div class="history-item">
-      <div class="history-left">
+  // índice real no array original (invertido)
+  list.innerHTML = items.map((l, i) => {
+    const realIdx = state.lancamentos.length - 1 - i;
+    return `
+    <div class="history-item" id="hist-${realIdx}">
+      <div class="history-left" style="flex:1">
         <div class="history-cat">${l.categoria}</div>
         <div class="history-desc">${l.descricao || '—'}</div>
         <div class="history-date">${l.data} · ${l.mes} · ${l.status}</div>
       </div>
-      <div class="history-val">${fmt(l.valor)}</div>
-    </div>
-  `).join('');
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <div class="history-val">${fmt(l.valor)}</div>
+        <button class="btn-delete" onclick="deletarLancamento(${realIdx})">🗑 apagar</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── APPS SCRIPT CODE ──────────────────────────────────────────────────────────
