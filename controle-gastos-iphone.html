@@ -431,6 +431,63 @@
   .history-item.receita-item { border-left:3px solid var(--success); }
   .history-item.despesa-item { border-left:3px solid var(--accent2); }
   .history-val.receita-val { color: var(--success); }
+
+  /* ── CARTÕES ── */
+  .card-credito {
+    border-radius: var(--r); padding: 20px;
+    margin-bottom: 14px; position: relative; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .card-credito.c6   { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+  .card-credito.nubank { background: linear-gradient(135deg, #3a0060 0%, #5b0096 50%, #7b00c8 100%); }
+  .card-credito::before {
+    content:''; position:absolute; top:-40px; right:-40px;
+    width:120px; height:120px; border-radius:50%;
+    background:rgba(255,255,255,0.06);
+  }
+  .card-credito::after {
+    content:''; position:absolute; bottom:-30px; right:20px;
+    width:80px; height:80px; border-radius:50%;
+    background:rgba(255,255,255,0.04);
+  }
+  .card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+  .card-nome { font-size:13px; font-weight:600; color:rgba(255,255,255,0.7); letter-spacing:0.05em; text-transform:uppercase; }
+  .card-status-badge {
+    font-size:10px; font-weight:700; padding:3px 8px; border-radius:99px;
+    letter-spacing:0.05em; text-transform:uppercase;
+  }
+  .badge-aberta { background:rgba(255,170,68,0.2); color:#ffaa44; border:1px solid rgba(255,170,68,0.4); }
+  .badge-fechada { background:rgba(255,85,102,0.2); color:#ff5566; border:1px solid rgba(255,85,102,0.4); }
+  .card-fatura-label { font-size:10px; color:rgba(255,255,255,0.4); margin-bottom:4px; }
+  .card-fatura-val { font-size:28px; font-weight:700; color:#fff; margin-bottom:12px; }
+  .card-bar-track { width:100%; height:5px; background:rgba(255,255,255,0.12); border-radius:99px; overflow:hidden; }
+  .card-bar-fill { height:100%; border-radius:99px; background:rgba(255,255,255,0.6); transition:width 0.5s; }
+  .card-bar-fill.over { background:#ff5566; }
+  .card-bottom { display:flex; justify-content:space-between; margin-top:10px; }
+  .card-info { font-size:11px; color:rgba(255,255,255,0.45); }
+  .card-info strong { color:rgba(255,255,255,0.8); }
+
+  .parcelas-list { margin-top:4px; }
+  .parcela-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 0; border-bottom:1px solid var(--border);
+    font-size:13px;
+  }
+  .parcela-item:last-child { border-bottom:none; }
+  .parcela-desc { color:var(--text); }
+  .parcela-info { font-size:11px; color:var(--muted); margin-top:2px; }
+  .parcela-val { font-weight:600; color:var(--accent2); }
+
+  /* form cartão */
+  .card-select-row { display:flex; gap:8px; margin-bottom:0; }
+  .card-select-btn {
+    flex:1; padding:11px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface2); color:var(--muted);
+    font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500;
+    cursor:pointer; text-align:center; transition:all 0.2s;
+  }
+  .card-select-btn.sel-c6 { background:rgba(15,52,96,0.5); border-color:#0f3460; color:#7eb8f7; }
+  .card-select-btn.sel-nubank { background:rgba(91,0,150,0.3); border-color:#7b00c8; color:#c084f5; }
 </style>
 </head>
 <body>
@@ -635,6 +692,20 @@
       <div class="config-item" id="fixas-container"></div>
     </div>
 
+    <div class="config-section">
+      <div class="config-section-title">💳 Limites dos Cartões</div>
+      <div class="config-item">
+        <div class="config-input-row">
+          <div class="config-input-label">Limite C6 Bank (R$)</div>
+          <input class="config-input" id="cfg-limite-c6" type="number" placeholder="Ex: 3000" inputmode="decimal">
+        </div>
+        <div class="config-input-row">
+          <div class="config-input-label">Limite Nubank (R$)</div>
+          <input class="config-input" id="cfg-limite-nu" type="number" placeholder="Ex: 5000" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
     <button class="btn-save" onclick="salvarConfig()">💾 Salvar configurações</button>
 
     <!-- GUIA DE CONFIGURAÇÃO -->
@@ -677,21 +748,123 @@
     </div>
   </div>
 
+  <!-- SECTION: CARTÕES -->
+  <div id="sec-card" class="section">
+
+    <!-- Cards visuais -->
+    <div id="card-c6" class="card-credito c6">
+      <div class="card-top">
+        <div class="card-nome">💳 C6 Bank</div>
+        <div class="card-status-badge badge-aberta" id="c6-status">Aberta</div>
+      </div>
+      <div class="card-fatura-label">Fatura do mês</div>
+      <div class="card-fatura-val" id="c6-fatura">R$ 0,00</div>
+      <div class="card-bar-track"><div class="card-bar-fill" id="c6-bar" style="width:0%"></div></div>
+      <div class="card-bottom">
+        <div class="card-info">Usado: <strong id="c6-pct">0%</strong></div>
+        <div class="card-info">Limite: <strong id="c6-limite-disp">R$ 0</strong> disponível</div>
+      </div>
+    </div>
+
+    <div id="card-nubank" class="card-credito nubank">
+      <div class="card-top">
+        <div class="card-nome">💜 Nubank</div>
+        <div class="card-status-badge badge-aberta" id="nu-status">Aberta</div>
+      </div>
+      <div class="card-fatura-label">Fatura do mês</div>
+      <div class="card-fatura-val" id="nu-fatura">R$ 0,00</div>
+      <div class="card-bar-track"><div class="card-bar-fill" id="nu-bar" style="width:0%"></div></div>
+      <div class="card-bottom">
+        <div class="card-info">Usado: <strong id="nu-pct">0%</strong></div>
+        <div class="card-info">Limite: <strong id="nu-limite-disp">R$ 0</strong> disponível</div>
+      </div>
+    </div>
+
+    <!-- Lançar no cartão -->
+    <div class="section-divider"><span>➕ novo lançamento</span></div>
+    <div class="form-card">
+      <div class="form-title">Compra no cartão</div>
+
+      <div class="field">
+        <label>Cartão</label>
+        <div class="card-select-row">
+          <button class="card-select-btn sel-c6" id="btn-c6" onclick="selecionarCartao('c6')">💳 C6 Bank</button>
+          <button class="card-select-btn" id="btn-nu" onclick="selecionarCartao('nubank')">💜 Nubank</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Descrição</label>
+        <input type="text" id="cc-desc" placeholder="Ex: Supermercado, Netflix...">
+      </div>
+
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label>Valor total (R$)</label>
+          <input type="number" id="cc-valor" placeholder="0,00" min="0" step="0.01" inputmode="decimal">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Parcelas</label>
+          <select id="cc-parcelas">
+            <option value="1">1x (à vista)</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+            <option value="5">5x</option>
+            <option value="6">6x</option>
+            <option value="10">10x</option>
+            <option value="12">12x</option>
+            <option value="18">18x</option>
+            <option value="24">24x</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Mês inicial</label>
+        <select id="cc-mes">
+          <option>Janeiro</option><option>Fevereiro</option><option>Março</option>
+          <option>Abril</option><option>Maio</option><option>Junho</option>
+          <option>Julho</option><option>Agosto</option><option>Setembro</option>
+          <option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-register" id="btn-cc-register"
+      style="background:linear-gradient(135deg,#0f3460,#5b0096)"
+      onclick="registrarCartao()">
+      Lançar no Cartão ✦
+    </button>
+
+    <!-- Parcelas em aberto -->
+    <div class="section-divider" style="margin-top:24px"><span>📅 parcelas em aberto</span></div>
+    <div class="form-card" style="padding:8px 16px">
+      <div id="parcelas-list" class="parcelas-list">
+        <div class="empty-state" style="padding:20px 0"><div class="icon" style="font-size:28px">💳</div><p>Nenhuma parcela em aberto.</p></div>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <!-- BOTTOM NAV -->
-<nav class="bottom-nav">
+<nav class="bottom-nav" style="gap:0">
   <button class="nav-btn active" onclick="showSection('home',this)">
-    <span>🏠</span><span>Início</span>
+    <span>🏠</span><span style="font-size:9px">Início</span>
   </button>
   <button class="nav-btn" onclick="showSection('reg',this)">
-    <span>＋</span><span>Lançar</span>
+    <span>＋</span><span style="font-size:9px">Lançar</span>
+  </button>
+  <button class="nav-btn" onclick="showSection('card',this)">
+    <span>💳</span><span style="font-size:9px">Cartões</span>
   </button>
   <button class="nav-btn" onclick="showSection('hist',this)">
-    <span>📋</span><span>Histórico</span>
+    <span>📋</span><span style="font-size:9px">Histórico</span>
   </button>
   <button class="nav-btn" onclick="showSection('cfg',this)">
-    <span>⚙️</span><span>Config</span>
+    <span>⚙️</span><span style="font-size:9px">Config</span>
   </button>
 </nav>
 
@@ -720,11 +893,18 @@ let tipoLancamento = 'despesa'; // 'despesa' ou 'receita'
 let mesSelecionado = new Date().getMonth(); // 0=Janeiro
 let anoSelecionado = new Date().getFullYear();
 
+let cartaoSelecionado = 'c6';
+
 let state = {
   url: '', renda: 0, orcamento: 0,
   fixas: { Aluguel:0, Internet:0, "Celular Tim":0, Faculdade:0, Luz:0, "Água":0, Compras:0, "Cartão de Crédito":0, Avulsos:0 },
   lancamentos: [],
-  receitas: []
+  receitas: [],
+  cartoes: {
+    c6:     { nome:'C6 Bank',  limite: 3000, fechaDia: 4, venceDia: 10 },
+    nubank: { nome:'Nubank',   limite: 5000, fechaDia: 4, venceDia: 10 }
+  },
+  comprasCartao: []  // { cartao, desc, valorTotal, parcelas, mesPrimeira, anoPrimeira, dataCadastro }
 };
 
 const APPS_SCRIPT = `// Cole este código no Apps Script da nova planilha Gastos_iPhone
@@ -780,8 +960,12 @@ function init() {
   renderFixasConfig();
   renderKPIs();
   renderHistorico();
+  renderCartoes();
   setDefaultDate();
   setDefaultMes();
+  // cc-mes default = mês atual
+  const ccMes = document.getElementById('cc-mes');
+  if (ccMes) ccMes.selectedIndex = new Date().getMonth();
   renderAppsScript();
 }
 
@@ -793,6 +977,13 @@ function loadState() {
   document.getElementById('cfg-url').value = state.url || '';
   document.getElementById('cfg-renda').value = state.renda || '';
   document.getElementById('cfg-orcamento').value = state.orcamento || '';
+  // cartões (safe: elementos podem não existir ainda)
+  setTimeout(() => {
+    const lc6 = document.getElementById('cfg-limite-c6');
+    const lnu = document.getElementById('cfg-limite-nu');
+    if (lc6 && state.cartoes?.c6?.limite) lc6.value = state.cartoes.c6.limite;
+    if (lnu && state.cartoes?.nubank?.limite) lnu.value = state.cartoes.nubank.limite;
+  }, 0);
 }
 
 function saveState() {
@@ -889,6 +1080,7 @@ function mudarMes(dir) {
   renderMonthLabel();
   renderKPIs();
   renderHistorico();
+  renderCartoes();
   // Atualiza o select de mês no formulário
   document.getElementById('f-mes').selectedIndex = mesSelecionado;
 }
@@ -1101,6 +1293,139 @@ async function registrar() {
   setTimeout(() => showSection('home', document.querySelectorAll('.nav-btn')[0]), 800);
 }
 
+// ── CARTÕES ───────────────────────────────────────────────────────────────────
+function selecionarCartao(id) {
+  cartaoSelecionado = id;
+  document.getElementById('btn-c6').className    = 'card-select-btn' + (id==='c6' ? ' sel-c6' : '');
+  document.getElementById('btn-nu').className     = 'card-select-btn' + (id==='nubank' ? ' sel-nubank' : '');
+  document.getElementById('btn-cc-register').style.background =
+    id === 'c6'
+      ? 'linear-gradient(135deg,#0f3460,#1a5276)'
+      : 'linear-gradient(135deg,#3a0060,#7b00c8)';
+}
+
+function faturaCartaoMes(idCartao, mes, ano) {
+  return (state.comprasCartao || [])
+    .filter(c => c.cartao === idCartao)
+    .reduce((total, c) => {
+      // verifica se este mês tem uma parcela desta compra
+      for (let p = 0; p < c.parcelas; p++) {
+        let m = MESES.indexOf(c.mesPrimeira) + p;
+        let a = c.anoPrimeira + Math.floor(m / 12);
+        m = m % 12;
+        if (MESES[m] === mes && a === ano) {
+          total += c.valorTotal / c.parcelas;
+          break;
+        }
+      }
+      return total;
+    }, 0);
+}
+
+function statusFatura() {
+  const hoje = new Date().getDate();
+  return hoje > 4 ? 'Fechada' : 'Aberta';
+}
+
+function renderCartoes() {
+  const mes = MESES[mesSelecionado];
+  const ano = anoSelecionado;
+  const status = statusFatura();
+  const badgeClass = status === 'Fechada' ? 'badge-fechada' : 'badge-aberta';
+
+  ['c6','nubank'].forEach(id => {
+    const cartao = state.cartoes[id];
+    const fatura = faturaCartaoMes(id, mes, ano);
+    const pct = cartao.limite > 0 ? Math.min((fatura / cartao.limite) * 100, 100) : 0;
+    const dispLabel = id === 'c6' ? 'c6' : 'nu';
+    const disponivel = cartao.limite - fatura;
+
+    document.getElementById(`${dispLabel}-fatura`).textContent = fmt(fatura);
+    document.getElementById(`${dispLabel}-bar`).style.width = pct + '%';
+    document.getElementById(`${dispLabel}-bar`).className = 'card-bar-fill' + (pct > 90 ? ' over' : '');
+    document.getElementById(`${dispLabel}-pct`).textContent = pct.toFixed(0) + '%';
+    document.getElementById(`${dispLabel}-limite-disp`).textContent = fmt(disponivel);
+    document.getElementById(`${dispLabel}-status`).textContent = status;
+    document.getElementById(`${dispLabel}-status`).className = 'card-status-badge ' + badgeClass;
+  });
+
+  renderParcelas();
+}
+
+function renderParcelas() {
+  const list = document.getElementById('parcelas-list');
+  const mes = MESES[mesSelecionado];
+  const ano = anoSelecionado;
+  const hoje = { mes: new Date().getMonth(), ano: new Date().getFullYear() };
+  const mesIdx = mesSelecionado + ano * 12;
+
+  // Todas as parcelas ainda em aberto (mês atual ou futuro)
+  const abertas = [];
+  (state.comprasCartao || []).forEach((c, ci) => {
+    for (let p = 0; p < c.parcelas; p++) {
+      let m = MESES.indexOf(c.mesPrimeira) + p;
+      let a = c.anoPrimeira + Math.floor(m / 12);
+      m = m % 12;
+      const parc_idx = m + a * 12;
+      if (parc_idx >= hoje.mes + hoje.ano * 12) {
+        abertas.push({
+          cartao: c.cartao, desc: c.desc,
+          mes: MESES[m], ano: a,
+          valor: c.valorTotal / c.parcelas,
+          parcAtual: p + 1, parcTotal: c.parcelas,
+          compraIdx: ci
+        });
+      }
+    }
+  });
+
+  if (!abertas.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:20px 0"><div class="icon" style="font-size:28px">💳</div><p>Nenhuma parcela em aberto.</p></div>';
+    return;
+  }
+
+  list.innerHTML = abertas.map((p, i) => `
+    <div class="parcela-item">
+      <div>
+        <div class="parcela-desc">${p.cartao === 'c6' ? '💳' : '💜'} ${p.desc}</div>
+        <div class="parcela-info">${p.mes} ${p.ano} · ${p.parcAtual}/${p.parcTotal}</div>
+      </div>
+      <div class="parcela-val">${fmt(p.valor)}</div>
+    </div>
+  `).join('');
+}
+
+function registrarCartao() {
+  const desc    = document.getElementById('cc-desc').value.trim();
+  const valor   = parseFloat(document.getElementById('cc-valor').value);
+  const parcelas = parseInt(document.getElementById('cc-parcelas').value);
+  const mes     = document.getElementById('cc-mes').value;
+  const ano     = anoSelecionado;
+
+  if (!desc) { showToast('Digite uma descrição', true); return; }
+  if (!valor || valor <= 0) { showToast('Informe o valor', true); return; }
+
+  const compra = {
+    cartao: cartaoSelecionado,
+    desc, valorTotal: valor, parcelas,
+    mesPrimeira: mes, anoPrimeira: ano,
+    dataCadastro: new Date().toISOString().split('T')[0]
+  };
+
+  if (!state.comprasCartao) state.comprasCartao = [];
+  state.comprasCartao.push(compra);
+  saveState();
+  renderCartoes();
+
+  // Limpa form
+  document.getElementById('cc-desc').value = '';
+  document.getElementById('cc-valor').value = '';
+  document.getElementById('cc-parcelas').selectedIndex = 0;
+
+  const nome = cartaoSelecionado === 'c6' ? 'C6 Bank' : 'Nubank';
+  showToast(`✅ Lançado no ${nome}${parcelas > 1 ? ` em ${parcelas}x` : ''}!`);
+}
+
 // ── DELETAR ───────────────────────────────────────────────────────────────────
 let _deleteIdx = null;
 let _deleteTipo = 'despesa';
@@ -1149,8 +1474,13 @@ function salvarConfig() {
     const id = 'fixa-' + cat.replace(/ /g,'_');
     state.fixas[cat] = parseFloat(document.getElementById(id)?.value) || 0;
   });
+  const lc6 = parseFloat(document.getElementById('cfg-limite-c6').value);
+  const lnu = parseFloat(document.getElementById('cfg-limite-nu').value);
+  if (lc6 > 0) state.cartoes.c6.limite = lc6;
+  if (lnu > 0) state.cartoes.nubank.limite = lnu;
   saveState();
   renderKPIs();
+  renderCartoes();
   showToast('✅ Configurações salvas!');
 }
 
@@ -1163,6 +1493,7 @@ function showSection(name, btn) {
   btn.classList.add('active');
   window.scrollTo({ top:0, behavior:'smooth' });
   if (name === 'hist') renderHistorico();
+  if (name === 'card') renderCartoes();
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
