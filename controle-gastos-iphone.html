@@ -80,6 +80,28 @@
   .config-alert strong { color:var(--accent); }
   .config-alert a { color:var(--accent2); }
 
+  /* ── SELETOR DE MÊS ── */
+  .month-selector {
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:12px 16px; margin-bottom:20px;
+  }
+  .month-nav {
+    width:36px; height:36px; border-radius:10px;
+    background:var(--surface2); border:1px solid var(--border);
+    color:var(--text); font-size:18px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.15s; flex-shrink:0;
+  }
+  .month-nav:active { background:var(--accent); border-color:var(--accent); transform:scale(0.92); }
+  .month-label {
+    font-family:'DM Serif Display',serif; font-size:18px;
+    background:linear-gradient(135deg,#fff,var(--accent));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    text-align:center; flex:1;
+  }
+  .month-label span { font-size:11px; color:var(--muted); display:block; font-family:'DM Sans',sans-serif; -webkit-text-fill-color:var(--muted); margin-top:2px; }
+
   /* ── CARDS KPI ── */
   .kpi-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
   .kpi {
@@ -397,6 +419,13 @@
 
 
 
+    <!-- SELETOR DE MÊS -->
+    <div class="month-selector">
+      <button class="month-nav" onclick="mudarMes(-1)">‹</button>
+      <div class="month-label" id="month-label">Abril<span>2026</span></div>
+      <button class="month-nav" onclick="mudarMes(1)">›</button>
+    </div>
+
     <div class="kpi-grid">
       <div class="kpi renda">
         <div class="kpi-label">💵 Renda</div>
@@ -411,7 +440,7 @@
       <div class="kpi gasto">
         <div class="kpi-label">💸 Gasto</div>
         <div class="kpi-value big" id="kpi-gasto">R$ 0</div>
-        <div class="kpi-sub">este mês</div>
+        <div class="kpi-sub" id="kpi-mes-label">este mês</div>
       </div>
       <div class="kpi saldo">
         <div class="kpi-label">✅ Disponível</div>
@@ -503,8 +532,11 @@
 
   <!-- SECTION: HISTÓRICO -->
   <div id="sec-hist" class="section">
-    <div style="font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:20px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">
-      Histórico
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-family:'DM Serif Display',serif;font-size:24px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">
+        Histórico
+      </div>
+      <div style="font-size:13px;color:var(--muted)" id="hist-mes-label"></div>
     </div>
     <div id="hist-list" class="history-list">
       <div class="empty-state">
@@ -628,6 +660,9 @@
 const CATS = ["Aluguel","Internet","Celular Tim","Faculdade","Luz","Água","Compras","Cartão de Crédito","Avulsos"];
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 let selectedCat = null;
+let mesSelecionado = new Date().getMonth(); // 0=Janeiro
+let anoSelecionado = new Date().getFullYear();
+
 let state = {
   url: '', renda: 0, orcamento: 0,
   fixas: { Aluguel:0, Internet:0, "Celular Tim":0, Faculdade:0, Luz:0, "Água":0, Compras:0, "Cartão de Crédito":0, Avulsos:0 },
@@ -681,6 +716,7 @@ function resp(obj) {
 function init() {
   loadState();
   renderDate();
+  renderMonthLabel();
   renderChips();
   renderFixasConfig();
   renderKPIs();
@@ -756,14 +792,34 @@ function renderFixasConfig() {
   });
 }
 
+// ── MÊS SELECIONADO ──────────────────────────────────────────────────────────
+function mudarMes(dir) {
+  mesSelecionado += dir;
+  if (mesSelecionado > 11) { mesSelecionado = 0; anoSelecionado++; }
+  if (mesSelecionado < 0)  { mesSelecionado = 11; anoSelecionado--; }
+  renderMonthLabel();
+  renderKPIs();
+  renderHistorico();
+  // Atualiza o select de mês no formulário
+  document.getElementById('f-mes').selectedIndex = mesSelecionado;
+}
+
+function renderMonthLabel() {
+  const el = document.getElementById('month-label');
+  el.innerHTML = `${MESES[mesSelecionado]}<span>${anoSelecionado}</span>`;
+  const isHoje = mesSelecionado === new Date().getMonth() && anoSelecionado === new Date().getFullYear();
+  document.getElementById('kpi-mes-label').textContent = isHoje ? 'este mês' : MESES[mesSelecionado].toLowerCase();
+}
+
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 function renderKPIs() {
   const renda = parseFloat(state.renda) || 0;
   const orcamento = parseFloat(state.orcamento) || renda;
   const totalFixas = Object.values(state.fixas).reduce((a,b) => a + (parseFloat(b)||0), 0);
-  const mes = MESES[new Date().getMonth()];
+  const mes = MESES[mesSelecionado];
+  const ano = anoSelecionado;
   const gastoMes = state.lancamentos
-    .filter(l => l.mes === mes)
+    .filter(l => l.mes === mes && parseInt(l.ano) === ano)
     .reduce((a,l) => a + (parseFloat(l.valor)||0), 0);
   const disponivel = orcamento - gastoMes;
   const pct = orcamento > 0 ? Math.min((gastoMes/orcamento)*100, 100) : 0;
@@ -787,7 +843,11 @@ function fmt(v) {
 
 function renderRecent() {
   const list = document.getElementById('recent-list');
-  const items = [...state.lancamentos].reverse().slice(0, 5);
+  const mes = MESES[mesSelecionado];
+  const ano = anoSelecionado;
+  const items = [...state.lancamentos]
+    .filter(l => l.mes === mes && parseInt(l.ano) === ano)
+    .reverse().slice(0, 5);
   if (!items.length) {
     list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhum lançamento ainda.<br>Toque em <strong>＋ Registrar</strong> para começar!</p></div>`;
     return;
@@ -808,14 +868,21 @@ function renderRecent() {
 
 function renderHistorico() {
   const list = document.getElementById('hist-list');
-  const items = [...state.lancamentos].reverse();
-  if (!items.length) {
-    list.innerHTML = `<div class="empty-state"><div class="icon">📂</div><p>Seus lançamentos aparecerão aqui.</p></div>`;
+  const mes = MESES[mesSelecionado];
+  const ano = anoSelecionado;
+  // filtra pelo mês/ano selecionado mas mantém índice real
+  const filtered = state.lancamentos
+    .map((l, idx) => ({...l, _idx: idx}))
+    .filter(l => l.mes === mes && parseInt(l.ano) === ano)
+    .reverse();
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📂</div><p>Nenhum lançamento em ${mes} ${ano}.</p></div>`;
     return;
   }
-  // índice real no array original (invertido)
-  list.innerHTML = items.map((l, i) => {
-    const realIdx = state.lancamentos.length - 1 - i;
+  const histLabel = document.getElementById('hist-mes-label');
+  if (histLabel) histLabel.textContent = `${mes} ${ano}`;
+  list.innerHTML = filtered.map((l) => {
+    const realIdx = l._idx;
     return `
     <div class="history-item" id="hist-${realIdx}">
       <div class="history-left" style="flex:1">
@@ -959,6 +1026,7 @@ function showSection(name, btn) {
   document.getElementById('sec-' + name).classList.add('active');
   btn.classList.add('active');
   window.scrollTo({ top:0, behavior:'smooth' });
+  if (name === 'hist') renderHistorico();
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
