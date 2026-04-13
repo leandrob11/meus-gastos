@@ -400,6 +400,37 @@
   }
   .btn-delete:active { background:rgba(255,85,102,0.25); transform:scale(0.95); }
   .empty-state p { font-size:13px; }
+
+  /* ── RECEITAS ── */
+  .kpi.receita  { --kpi-color: #00d4aa; }
+  .kpi.saldo-real { --kpi-color: #7c6fff; }
+  .kpi.saldo-real .kpi-value { color: var(--success); }
+  .kpi.saldo-real .kpi-value.negativo { color: var(--danger); }
+
+  .section-divider {
+    display:flex; align-items:center; gap:10px; margin:20px 0 16px;
+  }
+  .section-divider span {
+    font-size:11px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; white-space:nowrap;
+  }
+  .section-divider::before, .section-divider::after {
+    content:''; flex:1; height:1px; background:var(--border);
+  }
+
+  /* form receita */
+  .tipo-toggle { display:flex; gap:8px; margin-bottom:18px; }
+  .tipo-btn {
+    flex:1; padding:11px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface2); color:var(--muted);
+    font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500;
+    cursor:pointer; transition:all 0.2s; text-align:center;
+  }
+  .tipo-btn.active-despesa { background:rgba(255,107,157,0.15); border-color:var(--accent2); color:var(--accent2); }
+  .tipo-btn.active-receita { background:rgba(0,212,170,0.15); border-color:var(--accent3); color:var(--accent3); }
+
+  .history-item.receita-item { border-left:3px solid var(--success); }
+  .history-item.despesa-item { border-left:3px solid var(--accent2); }
+  .history-val.receita-val { color: var(--success); }
 </style>
 </head>
 <body>
@@ -426,12 +457,24 @@
       <button class="month-nav" onclick="mudarMes(1)">›</button>
     </div>
 
+    <!-- Painel Receitas -->
+    <div class="section-divider"><span>💚 receitas</span></div>
     <div class="kpi-grid">
-      <div class="kpi renda">
-        <div class="kpi-label">💵 Renda</div>
+      <div class="kpi receita">
+        <div class="kpi-label">💵 Salário</div>
         <div class="kpi-value big" id="kpi-renda">R$ 0</div>
-        <div class="kpi-sub">mensal</div>
+        <div class="kpi-sub">configurado</div>
       </div>
+      <div class="kpi receita">
+        <div class="kpi-label">➕ Entradas</div>
+        <div class="kpi-value big" id="kpi-entradas">R$ 0</div>
+        <div class="kpi-sub" id="kpi-mes-label">este mês</div>
+      </div>
+    </div>
+
+    <!-- Painel Gastos -->
+    <div class="section-divider"><span>🔴 despesas</span></div>
+    <div class="kpi-grid">
       <div class="kpi fixo">
         <div class="kpi-label">📌 Fixas</div>
         <div class="kpi-value big" id="kpi-fixo">R$ 0</div>
@@ -440,13 +483,16 @@
       <div class="kpi gasto">
         <div class="kpi-label">💸 Gasto</div>
         <div class="kpi-value big" id="kpi-gasto">R$ 0</div>
-        <div class="kpi-sub" id="kpi-mes-label">este mês</div>
+        <div class="kpi-sub">lançado</div>
       </div>
-      <div class="kpi saldo">
-        <div class="kpi-label">✅ Disponível</div>
-        <div class="kpi-value big" id="kpi-saldo">R$ 0</div>
-        <div class="kpi-sub">para gastar</div>
-      </div>
+    </div>
+
+    <!-- Saldo Real -->
+    <div class="section-divider"><span>⚖️ saldo real</span></div>
+    <div class="kpi saldo-real" style="margin-bottom:20px">
+      <div class="kpi-label">✅ Receitas − Despesas</div>
+      <div class="kpi-value" id="kpi-saldo" style="font-size:28px">R$ 0</div>
+      <div class="kpi-sub" id="kpi-saldo-sub">sobra no mês</div>
     </div>
 
     <div class="progress-card">
@@ -476,11 +522,19 @@
   <!-- SECTION: REGISTRAR -->
   <div id="sec-reg" class="section">
     <div class="form-card">
-      <div class="form-title">Novo lançamento</div>
+      <div class="form-title" id="form-title">Novo lançamento</div>
+      <div class="tipo-toggle">
+        <button class="tipo-btn active-despesa" id="tipo-despesa" onclick="setTipo('despesa')">💸 Despesa</button>
+        <button class="tipo-btn" id="tipo-receita" onclick="setTipo('receita')">💚 Receita</button>
+      </div>
 
-      <div class="field">
+      <div class="field" id="field-categoria">
         <label>Categoria</label>
         <div class="chips" id="chips-container"></div>
+      </div>
+      <div class="field" id="field-receita-cat" style="display:none">
+        <label>Tipo de Receita</label>
+        <div class="chips" id="chips-receita"></div>
       </div>
 
       <div class="field">
@@ -631,7 +685,7 @@
     <span>🏠</span><span>Início</span>
   </button>
   <button class="nav-btn" onclick="showSection('reg',this)">
-    <span>＋</span><span>Registrar</span>
+    <span>＋</span><span>Lançar</span>
   </button>
   <button class="nav-btn" onclick="showSection('hist',this)">
     <span>📋</span><span>Histórico</span>
@@ -659,14 +713,18 @@
 // ── ESTADO ───────────────────────────────────────────────────────────────────
 const CATS = ["Aluguel","Internet","Celular Tim","Faculdade","Luz","Água","Compras","Cartão de Crédito","Avulsos"];
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const CATS_RECEITA = ["Salário","Freelance","Bônus","13º Salário","Aluguel Recebido","Outros"];
 let selectedCat = null;
+let selectedCatReceita = null;
+let tipoLancamento = 'despesa'; // 'despesa' ou 'receita'
 let mesSelecionado = new Date().getMonth(); // 0=Janeiro
 let anoSelecionado = new Date().getFullYear();
 
 let state = {
   url: '', renda: 0, orcamento: 0,
   fixas: { Aluguel:0, Internet:0, "Celular Tim":0, Faculdade:0, Luz:0, "Água":0, Compras:0, "Cartão de Crédito":0, Avulsos:0 },
-  lancamentos: []
+  lancamentos: [],
+  receitas: []
 };
 
 const APPS_SCRIPT = `// Cole este código no Apps Script da nova planilha Gastos_iPhone
@@ -718,6 +776,7 @@ function init() {
   renderDate();
   renderMonthLabel();
   renderChips();
+  renderChipsReceita();
   renderFixasConfig();
   renderKPIs();
   renderHistorico();
@@ -775,6 +834,36 @@ function selectCat(cat) {
   renderChips();
 }
 
+function selectCatReceita(cat) {
+  selectedCatReceita = cat;
+  renderChipsReceita();
+}
+
+function setTipo(tipo) {
+  tipoLancamento = tipo;
+  document.getElementById('tipo-despesa').className = 'tipo-btn' + (tipo === 'despesa' ? ' active-despesa' : '');
+  document.getElementById('tipo-receita').className = 'tipo-btn' + (tipo === 'receita' ? ' active-receita' : '');
+  document.getElementById('field-categoria').style.display = tipo === 'despesa' ? '' : 'none';
+  document.getElementById('field-receita-cat').style.display = tipo === 'receita' ? '' : 'none';
+  document.getElementById('f-desc').placeholder = tipo === 'receita' ? 'Ex: Salário de abril...' : 'Ex: Conta de luz...';
+  document.getElementById('btn-register').style.background = tipo === 'receita'
+    ? 'linear-gradient(135deg,#00d4aa,#00a880)'
+    : 'linear-gradient(135deg,var(--accent),var(--accent2))';
+  if (tipo === 'receita') renderChipsReceita();
+}
+
+function renderChipsReceita() {
+  const container = document.getElementById('chips-receita');
+  container.innerHTML = '';
+  CATS_RECEITA.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (cat === selectedCatReceita ? ' selected' : '');
+    chip.textContent = cat;
+    chip.onclick = () => selectCatReceita(cat);
+    container.appendChild(chip);
+  });
+}
+
 // ── FIXAS CONFIG ──────────────────────────────────────────────────────────────
 function renderFixasConfig() {
   const container = document.getElementById('fixas-container');
@@ -814,21 +903,35 @@ function renderMonthLabel() {
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 function renderKPIs() {
   const renda = parseFloat(state.renda) || 0;
-  const orcamento = parseFloat(state.orcamento) || renda;
   const totalFixas = Object.values(state.fixas).reduce((a,b) => a + (parseFloat(b)||0), 0);
   const mes = MESES[mesSelecionado];
   const ano = anoSelecionado;
+
+  // Despesas lançadas no mês
   const gastoMes = state.lancamentos
     .filter(l => l.mes === mes && parseInt(l.ano) === ano)
     .reduce((a,l) => a + (parseFloat(l.valor)||0), 0);
-  const disponivel = orcamento - gastoMes;
+
+  // Receitas lançadas no mês
+  const entradasMes = (state.receitas || [])
+    .filter(r => r.mes === mes && parseInt(r.ano) === ano)
+    .reduce((a,r) => a + (parseFloat(r.valor)||0), 0);
+
+  // Saldo real = salário fixo + entradas lançadas − gastos
+  const totalReceitas = renda + entradasMes;
+  const saldoReal = totalReceitas - gastoMes;
+
+  // Orçamento (barra)
+  const orcamento = parseFloat(state.orcamento) || renda;
   const pct = orcamento > 0 ? Math.min((gastoMes/orcamento)*100, 100) : 0;
 
   document.getElementById('kpi-renda').textContent = fmt(renda);
+  document.getElementById('kpi-entradas').textContent = fmt(entradasMes);
   document.getElementById('kpi-fixo').textContent = fmt(totalFixas);
   document.getElementById('kpi-gasto').textContent = fmt(gastoMes);
-  document.getElementById('kpi-saldo').textContent = fmt(disponivel);
-  document.getElementById('kpi-saldo').className = 'kpi-value big' + (disponivel < 0 ? ' negativo' : '');
+  document.getElementById('kpi-saldo').textContent = (saldoReal < 0 ? '− ' : '') + fmt(saldoReal);
+  document.getElementById('kpi-saldo').className = 'kpi-value' + (saldoReal < 0 ? ' negativo' : '');
+  document.getElementById('kpi-saldo-sub').textContent = saldoReal >= 0 ? 'sobra no mês' : 'deficit no mês';
   document.getElementById('pct-text').textContent = pct.toFixed(0) + '%';
   document.getElementById('bar-max').textContent = fmt(orcamento);
   const bar = document.getElementById('bar-fill');
@@ -845,22 +948,28 @@ function renderRecent() {
   const list = document.getElementById('recent-list');
   const mes = MESES[mesSelecionado];
   const ano = anoSelecionado;
-  const items = [...state.lancamentos]
+  const despesas = state.lancamentos
     .filter(l => l.mes === mes && parseInt(l.ano) === ano)
-    .reverse().slice(0, 5);
+    .map(l => ({...l, _tipo:'despesa'}));
+  const receitas = (state.receitas || [])
+    .filter(r => r.mes === mes && parseInt(r.ano) === ano)
+    .map(r => ({...r, _tipo:'receita'}));
+  const items = [...despesas, ...receitas]
+    .sort((a,b) => new Date(b.data) - new Date(a.data))
+    .slice(0, 5);
   if (!items.length) {
     list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhum lançamento ainda.<br>Toque em <strong>＋ Registrar</strong> para começar!</p></div>`;
     return;
   }
   list.innerHTML = items.map((l,i) => `
-    <div class="history-item" id="recent-${i}">
+    <div class="history-item ${l._tipo === 'receita' ? 'receita-item' : 'despesa-item'}" id="recent-${i}">
       <div class="history-left">
-        <div class="history-cat">${l.categoria}</div>
+        <div class="history-cat">${l._tipo === 'receita' ? '💚 ' : ''}${l.categoria}</div>
         <div class="history-desc">${l.descricao || '—'}</div>
-        <div class="history-date">${l.data} · ${l.mes} · ${l.status}</div>
+        <div class="history-date">${l.data} · ${l.mes}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
-        <div class="history-val">${fmt(l.valor)}</div>
+        <div class="history-val ${l._tipo === 'receita' ? 'receita-val' : ''}">${l._tipo === 'receita' ? '+' : ''}${fmt(l.valor)}</div>
       </div>
     </div>
   `).join('');
@@ -870,29 +979,35 @@ function renderHistorico() {
   const list = document.getElementById('hist-list');
   const mes = MESES[mesSelecionado];
   const ano = anoSelecionado;
-  // filtra pelo mês/ano selecionado mas mantém índice real
-  const filtered = state.lancamentos
-    .map((l, idx) => ({...l, _idx: idx}))
-    .filter(l => l.mes === mes && parseInt(l.ano) === ano)
-    .reverse();
+  const histLabel = document.getElementById('hist-mes-label');
+  if (histLabel) histLabel.textContent = `${mes} ${ano}`;
+
+  const despesas = state.lancamentos
+    .map((l, idx) => ({...l, _idx: idx, _tipo:'despesa'}))
+    .filter(l => l.mes === mes && parseInt(l.ano) === ano);
+  const receitas = (state.receitas || [])
+    .map((r, idx) => ({...r, _idx: idx, _tipo:'receita'}))
+    .filter(r => r.mes === mes && parseInt(r.ano) === ano);
+  const filtered = [...despesas, ...receitas]
+    .sort((a,b) => new Date(b.data) - new Date(a.data));
+
   if (!filtered.length) {
     list.innerHTML = `<div class="empty-state"><div class="icon">📂</div><p>Nenhum lançamento em ${mes} ${ano}.</p></div>`;
     return;
   }
-  const histLabel = document.getElementById('hist-mes-label');
-  if (histLabel) histLabel.textContent = `${mes} ${ano}`;
   list.innerHTML = filtered.map((l) => {
-    const realIdx = l._idx;
+    const isRec = l._tipo === 'receita';
+    const btnApagar = `<button class="btn-delete" onclick="${isRec ? 'deletarReceita' : 'deletarLancamento'}(${l._idx})">🗑 apagar</button>`;
     return `
-    <div class="history-item" id="hist-${realIdx}">
+    <div class="history-item ${isRec ? 'receita-item' : 'despesa-item'}">
       <div class="history-left" style="flex:1">
-        <div class="history-cat">${l.categoria}</div>
+        <div class="history-cat">${isRec ? '💚 ' : ''}${l.categoria}</div>
         <div class="history-desc">${l.descricao || '—'}</div>
-        <div class="history-date">${l.data} · ${l.mes} · ${l.status}</div>
+        <div class="history-date">${l.data} · ${l.mes} · ${l.status || ''}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
-        <div class="history-val">${fmt(l.valor)}</div>
-        <button class="btn-delete" onclick="deletarLancamento(${realIdx})">🗑 apagar</button>
+        <div class="history-val ${isRec ? 'receita-val' : ''}">${isRec ? '+' : ''}${fmt(l.valor)}</div>
+        ${btnApagar}
       </div>
     </div>`;
   }).join('');
@@ -911,17 +1026,19 @@ function copiarScript() {
 
 // ── REGISTRAR ────────────────────────────────────────────────────────────────
 async function registrar() {
-  const cat = selectedCat;
+  const isReceita = tipoLancamento === 'receita';
+  const cat = isReceita ? selectedCatReceita : selectedCat;
   const valor = document.getElementById('f-valor').value;
   const desc = document.getElementById('f-desc').value;
   const mes = document.getElementById('f-mes').value;
   const status = document.getElementById('f-status').value;
   const data = document.getElementById('f-data').value;
 
-  if (!cat) { showToast('Selecione uma categoria', true); return; }
+  if (!cat) { showToast(isReceita ? 'Selecione o tipo de receita' : 'Selecione uma categoria', true); return; }
   if (!valor || parseFloat(valor) <= 0) { showToast('Informe um valor válido', true); return; }
 
   const lancamento = {
+    tipo: tipoLancamento,
     categoria: cat, valor: parseFloat(valor),
     descricao: desc, mes, status, data,
     ano: new Date().getFullYear()
@@ -932,7 +1049,12 @@ async function registrar() {
   btn.textContent = 'Enviando...';
 
   // Salva local sempre
-  state.lancamentos.push(lancamento);
+  if (lancamento.tipo === 'receita') {
+    if (!state.receitas) state.receitas = [];
+    state.receitas.push(lancamento);
+  } else {
+    state.lancamentos.push(lancamento);
+  }
   saveState();
 
   // Tenta enviar para planilha via GET (sem problema de CORS)
@@ -963,7 +1085,9 @@ async function registrar() {
 
   // Reset form
   selectedCat = null;
+  selectedCatReceita = null;
   renderChips();
+  if (tipoLancamento === 'receita') renderChipsReceita();
   document.getElementById('f-valor').value = '';
   document.getElementById('f-desc').value = '';
   setDefaultDate();
@@ -979,9 +1103,17 @@ async function registrar() {
 
 // ── DELETAR ───────────────────────────────────────────────────────────────────
 let _deleteIdx = null;
+let _deleteTipo = 'despesa';
 
 function deletarLancamento(idx) {
   _deleteIdx = idx;
+  _deleteTipo = 'despesa';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function deletarReceita(idx) {
+  _deleteIdx = idx;
+  _deleteTipo = 'receita';
   document.getElementById('modal-overlay').classList.add('show');
 }
 
@@ -992,7 +1124,11 @@ function fecharModal() {
 
 document.getElementById('modal-confirm').onclick = function() {
   if (_deleteIdx === null) return;
-  state.lancamentos.splice(_deleteIdx, 1);
+  if (_deleteTipo === 'receita') {
+    state.receitas.splice(_deleteIdx, 1);
+  } else {
+    state.lancamentos.splice(_deleteIdx, 1);
+  }
   saveState();
   renderKPIs();
   renderHistorico();
