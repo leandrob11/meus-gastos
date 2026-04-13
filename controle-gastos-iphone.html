@@ -488,6 +488,37 @@
   }
   .card-select-btn.sel-c6 { background:rgba(15,52,96,0.5); border-color:#0f3460; color:#7eb8f7; }
   .card-select-btn.sel-nubank { background:rgba(91,0,150,0.3); border-color:#7b00c8; color:#c084f5; }
+
+  /* ── GRÁFICOS ── */
+  .chart-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--r); padding:20px; margin-bottom:16px;
+  }
+  .chart-title {
+    font-size:13px; font-weight:600; color:var(--muted);
+    letter-spacing:0.06em; text-transform:uppercase; margin-bottom:16px;
+  }
+  canvas { display:block; width:100% !important; }
+
+  /* Legenda pizza */
+  .pizza-legend { margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+  .legend-item { display:flex; align-items:center; gap:10px; font-size:13px; }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .legend-label { flex:1; color:var(--text); }
+  .legend-val { color:var(--muted); font-size:12px; }
+  .legend-pct { color:var(--accent); font-size:12px; font-weight:600; min-width:36px; text-align:right; }
+
+  /* Resumo stats */
+  .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px; }
+  .stat-box {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:12px 10px; text-align:center;
+  }
+  .stat-box-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+  .stat-box-val { font-size:15px; font-weight:700; }
+  .stat-box-val.verde { color:var(--success); }
+  .stat-box-val.rosa  { color:var(--accent2); }
+  .stat-box-val.roxo  { color:var(--accent); }
 </style>
 </head>
 <body>
@@ -847,24 +878,71 @@
 
   </div>
 
+  <!-- SECTION: GRÁFICOS -->
+  <div id="sec-graf" class="section">
+
+    <div style="font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:8px;background:linear-gradient(135deg,#fff,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent">
+      Gráficos
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px" id="graf-mes-label">Abril 2026</div>
+
+    <!-- Stats rápidos -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-box-label">Receitas</div>
+        <div class="stat-box-val verde" id="g-receita">R$ 0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">Despesas</div>
+        <div class="stat-box-val rosa" id="g-despesa">R$ 0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">Cartão</div>
+        <div class="stat-box-val roxo" id="g-cartao">R$ 0</div>
+      </div>
+    </div>
+
+    <!-- Pizza categorias -->
+    <div class="chart-card">
+      <div class="chart-title">🍕 despesas por categoria</div>
+      <canvas id="pizza-chart" height="220"></canvas>
+      <div class="pizza-legend" id="pizza-legend"></div>
+    </div>
+
+    <!-- Barras mês a mês -->
+    <div class="chart-card">
+      <div class="chart-title">📊 últimos 6 meses</div>
+      <canvas id="bar-chart" height="200"></canvas>
+      <div style="display:flex;gap:16px;margin-top:12px;justify-content:center;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:#ff6b9d"></div>Despesas</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:#00d4aa"></div>Receitas</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:#7c6fff"></div>Cartão</div>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" style="gap:0">
   <button class="nav-btn active" onclick="showSection('home',this)">
-    <span>🏠</span><span style="font-size:9px">Início</span>
+    <span>🏠</span><span style="font-size:8px">Início</span>
   </button>
   <button class="nav-btn" onclick="showSection('reg',this)">
-    <span>＋</span><span style="font-size:9px">Lançar</span>
+    <span>＋</span><span style="font-size:8px">Lançar</span>
   </button>
   <button class="nav-btn" onclick="showSection('card',this)">
-    <span>💳</span><span style="font-size:9px">Cartões</span>
+    <span>💳</span><span style="font-size:8px">Cartões</span>
+  </button>
+  <button class="nav-btn" onclick="showSection('graf',this)">
+    <span>📊</span><span style="font-size:8px">Gráficos</span>
   </button>
   <button class="nav-btn" onclick="showSection('hist',this)">
-    <span>📋</span><span style="font-size:9px">Histórico</span>
+    <span>📋</span><span style="font-size:8px">Histórico</span>
   </button>
   <button class="nav-btn" onclick="showSection('cfg',this)">
-    <span>⚙️</span><span style="font-size:9px">Config</span>
+    <span>⚙️</span><span style="font-size:8px">Config</span>
   </button>
 </nav>
 
@@ -1081,6 +1159,7 @@ function mudarMes(dir) {
   renderKPIs();
   renderHistorico();
   renderCartoes();
+  if (document.getElementById('sec-graf').classList.contains('active')) setTimeout(renderGraficos, 50);
   // Atualiza o select de mês no formulário
   document.getElementById('f-mes').selectedIndex = mesSelecionado;
 }
@@ -1494,6 +1573,190 @@ function showSection(name, btn) {
   window.scrollTo({ top:0, behavior:'smooth' });
   if (name === 'hist') renderHistorico();
   if (name === 'card') renderCartoes();
+  if (name === 'graf') setTimeout(renderGraficos, 50);
+}
+
+// ── GRÁFICOS ──────────────────────────────────────────────────────────────────
+const PIZZA_COLORS = ['#ff6b9d','#7c6fff','#00d4aa','#ffaa44','#ff5566','#4ecdc4','#45b7d1','#96ceb4','#ffeaa7'];
+
+function renderGraficos() {
+  const mes = MESES[mesSelecionado];
+  const ano = anoSelecionado;
+
+  // Stats rápidos
+  const despesaTotal = state.lancamentos
+    .filter(l => l.mes === mes && parseInt(l.ano) === ano)
+    .reduce((a,l) => a + (parseFloat(l.valor)||0), 0);
+  const receitaTotal = (state.receitas||[])
+    .filter(r => r.mes === mes && parseInt(r.ano) === ano)
+    .reduce((a,r) => a + (parseFloat(r.valor)||0), 0) + (parseFloat(state.renda)||0);
+  const cartaoTotal = faturaCartaoMes('c6', mes, ano) + faturaCartaoMes('nubank', mes, ano);
+
+  document.getElementById('g-receita').textContent = fmt(receitaTotal);
+  document.getElementById('g-despesa').textContent = fmt(despesaTotal);
+  document.getElementById('g-cartao').textContent  = fmt(cartaoTotal);
+  const grafLabel = document.getElementById('graf-mes-label');
+  if (grafLabel) grafLabel.textContent = `${mes} ${ano}`;
+
+  renderPizzaChart(mes, ano, despesaTotal);
+  renderBarChart();
+}
+
+function renderPizzaChart(mes, ano, despesaTotal) {
+  const canvas = document.getElementById('pizza-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 40;
+  const H = 220;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  // Agrupa por categoria
+  const porCat = {};
+  state.lancamentos
+    .filter(l => l.mes === mes && parseInt(l.ano) === ano)
+    .forEach(l => {
+      porCat[l.categoria] = (porCat[l.categoria]||0) + (parseFloat(l.valor)||0);
+    });
+
+  const entries = Object.entries(porCat).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+
+  if (!entries.length) {
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '14px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Nenhum gasto em ' + mes, W/2, H/2);
+    document.getElementById('pizza-legend').innerHTML = '';
+    return;
+  }
+
+  const cx = W / 2, cy = H / 2, r = Math.min(cx, cy) - 10;
+  let startAngle = -Math.PI / 2;
+
+  entries.forEach(([cat, val], i) => {
+    const slice = (val / despesaTotal) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+    ctx.closePath();
+    ctx.fillStyle = PIZZA_COLORS[i % PIZZA_COLORS.length];
+    ctx.fill();
+    ctx.strokeStyle = '#0a0a0f';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    startAngle += slice;
+  });
+
+  // Buraco central (donut)
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.52, 0, 2 * Math.PI);
+  ctx.fillStyle = '#13131a';
+  ctx.fill();
+
+  // Total no centro
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.min(16, r*0.22)}px DM Sans, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(fmt(despesaTotal), cx, cy - 8);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = `11px DM Sans, sans-serif`;
+  ctx.fillText('total gastos', cx, cy + 12);
+
+  // Legenda
+  const legend = document.getElementById('pizza-legend');
+  legend.innerHTML = entries.map(([cat, val], i) => {
+    const pct = ((val / despesaTotal) * 100).toFixed(1);
+    return `<div class="legend-item">
+      <div class="legend-dot" style="background:${PIZZA_COLORS[i % PIZZA_COLORS.length]}"></div>
+      <div class="legend-label">${cat}</div>
+      <div class="legend-val">${fmt(val)}</div>
+      <div class="legend-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBarChart() {
+  const canvas = document.getElementById('bar-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 40;
+  const H = 200;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  // Últimos 6 meses
+  const labels = [], desp = [], rec = [], cart = [];
+  for (let i = 5; i >= 0; i--) {
+    let m = mesSelecionado - i;
+    let a = anoSelecionado;
+    if (m < 0) { m += 12; a--; }
+    const mes = MESES[m];
+    labels.push(mes.substring(0,3));
+    desp.push(state.lancamentos.filter(l => l.mes===mes && parseInt(l.ano)===a).reduce((s,l)=>s+(parseFloat(l.valor)||0),0));
+    rec.push(((state.receitas||[]).filter(r=>r.mes===mes&&parseInt(r.ano)===a).reduce((s,r)=>s+(parseFloat(r.valor)||0),0))+(parseFloat(state.renda)||0));
+    cart.push(faturaCartaoMes('c6',mes,a)+faturaCartaoMes('nubank',mes,a));
+  }
+
+  const maxVal = Math.max(...desp, ...rec, ...cart, 1);
+  const padL = 44, padR = 8, padT = 12, padB = 28;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const groupW = chartW / 6;
+  const barW = Math.max(groupW / 4 - 2, 4);
+
+  // Grid lines
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + chartH - (i / 4) * chartH;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.moveTo(padL, y); ctx.lineTo(W - padR, y);
+    ctx.stroke();
+    if (i > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.font = '9px DM Sans,sans-serif';
+      ctx.textAlign = 'right';
+      const val = (maxVal * i / 4);
+      ctx.fillText(val >= 1000 ? (val/1000).toFixed(1)+'k' : val.toFixed(0), padL - 3, y + 3);
+    }
+  }
+
+  // Barras
+  labels.forEach((lbl, gi) => {
+    const gx = padL + gi * groupW + groupW / 2;
+    const bars = [
+      { val: desp[gi],  color: '#ff6b9d' },
+      { val: rec[gi],   color: '#00d4aa' },
+      { val: cart[gi],  color: '#7c6fff' },
+    ];
+    bars.forEach((b, bi) => {
+      const bh = (b.val / maxVal) * chartH;
+      const bx = gx - (barW * 1.5) + bi * (barW + 2);
+      const by = padT + chartH - bh;
+      ctx.beginPath();
+      ctx.fillStyle = b.color;
+      const rad = 3;
+      ctx.roundRect ? ctx.roundRect(bx, by, barW, bh, [rad, rad, 0, 0]) : ctx.rect(bx, by, barW, bh);
+      ctx.fill();
+    });
+
+    // Label mês
+    ctx.fillStyle = gi === 5 ? '#fff' : 'rgba(255,255,255,0.4)';
+    ctx.font = gi === 5 ? 'bold 10px DM Sans,sans-serif' : '9px DM Sans,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(lbl, gx, H - padB + 14);
+  });
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
